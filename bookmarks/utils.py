@@ -16,7 +16,8 @@ def check_conf_file():
     if os.path.exists(conf_path):
         return True
     from shutil import copyfile
-    copyfile(root_path / 'info_sample.conf', conf_path)
+    sample = root_path / 'sample' / 'info_sample.conf'
+    copyfile(sample if sample.exists() else root_path / 'info_sample.conf', conf_path)
     log("ERROR", "似乎还未设置好配置文件")
 
 
@@ -195,14 +196,15 @@ class PDFHandler(object):
                     log('WARN', 'skip line', line, i)
         return bookmarks, max_parent
 
-    def add_bookmarks_by_read_txt(self, txt_file_path, page_offset=0):
+    def add_bookmarks_by_read_txt(self, txt_file_path, page_offset=0, collapse=True):
         '''
         通过读取书签列表信息文本文件，将书签批量添加到PDF文件中
         :param txt_file_path: 书签列表信息文本文件
         :param page_offset: 页码偏移量，为0或正数，即由于封面、目录等页面的存在，在PDF中实际的绝对页码比在目录中写的页码多出的差值
+        :param collapse: 是否默认折叠有子节点的书签
         :return: None
         '''
         bookmarks, max_parent = self.read_bookmarks_from_txt(
             txt_file_path, page_offset)
-        self.add_bookmarks(bookmarks, max_parent)
+        self.add_bookmarks(bookmarks, max_parent, collapse=collapse)
         # print('add_bookmarks_by_read_txt success!')
