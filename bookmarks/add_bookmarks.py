@@ -9,12 +9,12 @@ from shutil import copyfile
 def main():
     # read config
     cf = configparser.ConfigParser()  # config
-    cf.read(conf_path)
+    cf.read(conf_path, encoding="utf-8")
     pdf_path = Path(cf.get('add', 'pdf_path'))
     bookmark_file_path = cf.get('add', 'bookmark_file_path')
     page_offset = cf.getint('add', 'page_offset')
 
-    with open(bookmark_file_path, "r") as f:
+    with open(bookmark_file_path, "r", encoding="utf-8") as f:
         bm_meta = re.findall(r"offset\s*=\s*\d+\n", f.read())
         if bm_meta:
             bm_cf = configparser.ConfigParser()  # bookmark config

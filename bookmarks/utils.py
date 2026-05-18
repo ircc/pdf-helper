@@ -1,5 +1,6 @@
 # coding:utf-8
 from PyPDF2 import PdfReader, PdfWriter
+from PyPDF2.generic import NameObject, NumberObject
 import os
 import re
 import subprocess
@@ -111,7 +112,27 @@ class PDFHandler(object):
         )
         return bm
 
-    def add_bookmarks(self, bookmarks, max_parent):
+    def _collapse_outline_node(self, node):
+        """将有子节点的书签设为折叠（/Count 取负值）。"""
+        obj = node.get_object() if hasattr(node, 'get_object') else node
+        count = obj.get('/Count')
+        if count is not None and int(count) > 0:
+            obj[NameObject('/Count')] = NumberObject(-int(count))
+        first = obj.get('/First')
+        if first is None:
+            return
+        cur = first
+        while cur is not None:
+            cur_obj = cur.get_object()
+            self._collapse_outline_node(cur)
+            cur = cur_obj.get('/Next')
+
+    def collapse_all_outlines(self):
+        """打开 PDF 时默认折叠全部可展开的书签节点。"""
+        outline_root = self.__writeable_pdf.get_outline_root()
+        self._collapse_outline_node(outline_root)
+
+    def add_bookmarks(self, bookmarks, max_parent, collapse=True):
         '''
         批量添加书签
         :param bookmarks: 书签元组列表，其中的页码表示的是PDF中的绝对页码，值为1表示第一页
@@ -121,6 +142,8 @@ class PDFHandler(object):
         for title, page, index in bookmarks:
             bm = self.add_one_bookmark(title, page, parent=parents[index])
             parents[index + 1] = bm
+        if collapse:
+            self.collapse_all_outlines()
         print('add_bookmarks success! add {0} pieces of bookmarks to PDF file'.
               format(len(bookmarks)))
 
@@ -136,7 +159,7 @@ class PDFHandler(object):
         '''
         bookmarks = []
         max_parent = 0
-        with open(txt_file_path, 'r') as fin:
+        with open(txt_file_path, 'r', encoding='utf-8') as fin:
             for i, line in enumerate(fin):
                 line = line.rstrip()
                 if not line:
